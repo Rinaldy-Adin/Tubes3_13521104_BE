@@ -1,7 +1,7 @@
 // String matching algorithms
 
 /**
- * @abstract KMP algorithm
+ * KMP algorithm
  * @param {string} text
  * @param {string} pattern
  * @returns {number} index of the first match
@@ -28,7 +28,7 @@ function kmp(text, pattern) {
 }
 
 /**
- * @abstract Compute prefix array
+ * Compute prefix array
  * @param {string} pattern
  * @returns {number[]} prefix array
  * 
@@ -52,13 +52,12 @@ function computePrefix(pattern) {
 }
 
 /**
- * @abstract Boyer-Moore algorithm
+ * Boyer-Moore algorithm
  * @param {string} text
  * @param {string} pattern
  * @returns {number} index of the first match
  * 
  */
-
 function boyerMoore(text, pattern) {
     const last = buildLast(pattern);
     let i = pattern.length - 1;
@@ -79,7 +78,7 @@ function boyerMoore(text, pattern) {
 }
 
 /**
- * @abstract Build last object
+ * Build last object
  * @param {string} pattern
  * @returns {object} last object
  * 
