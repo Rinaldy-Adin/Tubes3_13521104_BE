@@ -1,10 +1,10 @@
 // Input classifiers
 
-// Regex for calculator expression
-const mathRegex = /\b\d+(\.\d+)?\s*([-+*/^]\s*\d+(\.\d+)?\s*)+\b/
+// Regex for math expression
+const mathRegex = /\b\d+(\.\d+)?\s*([-+*/^]\s*\d+(\.\d+)?\s*)+\b/i;
 
 // Regex for date
-const dateRegex = /\d\/\d\/\d/;
+const dateRegex = /\b(\d\d|\d)\s*\/\s*(\d\d|\d)\s*\/\s*\d\d\d\d\b/;
 
 // Regex for add question command
 const addQuestionRegex = /\btambahkan\s*pertanyaan\s*(.+)\s*dengan\s*jawaban\s*(.+)\b/i;
@@ -45,6 +45,15 @@ function levenshteinDistance(str1, str2) {
 	return dp[m][n];
 }
 
+// Calculate the levenshtein distance of each question in the MongoDB database
+function calculateQuestionSimilarity(questions) {
+	const levenstheinArray = [];
+	for (let i = 0; i < questions.length; i++) {
+		levenstheinArray.push(levenshteinDistance(questions[i].question, input));
+	}
+	return levenstheinArray;
+}
+
 // Classify user input into the appropriate category
 function classifyInput(input) {
 
@@ -69,11 +78,56 @@ function classifyInput(input) {
 	return classArray;
 }
 
+// Validate date
+function validateDate(date) {
+	const dateArray = date.split("/");
+	const day = parseInt(dateArray[0]);
+	const month = parseInt(dateArray[1]);
+	const year = parseInt(dateArray[2]);
+
+	if (day < 1 || day > 31) {
+		return false;
+	}
+
+	if (month < 1 || month > 12) {
+		return false;
+	}
+
+	if (year < 0) {
+		return false;
+	}
+
+	return true;
+}
+
+// Classify day of the week
+function classifyDay(day) {
+	switch (day) {
+		case 0:
+			return "Sunday";
+		case 1:
+			return "Monday";
+		case 2:
+			return "Tuesday";
+		case 3:
+			return "Wednesday";
+		case 4:
+			return "Thursday";
+		case 5:
+			return "Friday";
+		case 6:
+			return "Saturday";
+		default:
+			return "Invalid day";
+	}
+}
+
 // Create a function to handle user input
 function handleInput(input) {
 	// Classify user input
 	const category = classifyInput(input);
 
+	// TODO: Find exact match in database to prioritize answering
 	if (category[0] === 0 && category[1] === 0 && category[2] === 0 && category[3] === 0) {
 		console.log("Check database for questions.");
 		return;
@@ -89,10 +143,26 @@ function handleInput(input) {
 					console.log("You entered a delete question command.");
 					break;
 				case 2:
-					console.log("You entered a date.");
+					let dateMatch = input.match(dateRegex)[0];
+
+					// TODO: Handle multiple occurences of dates
+
+					// Validate and get the day of the week if date is valid
+					if (validateDate(dateMatch)) {
+						const dateArray = dateMatch.split("/");
+						const reformattedDate = dateArray[2] + "-" + dateArray[1] + "-" + dateArray[0];
+						const day = new Date(reformattedDate).getDay();
+						console.log("It's " + classifyDay(day) + ".");
+					}
+
 					break;
 				case 3:
-					console.log("You entered a math expression. ");
+					// Does not calculate the result of the math expression if it is also a valid date
+					if (dateRegex.test(input) && validateDate(input.match(dateRegex)[0])) {
+						break;
+					}
+
+					console.log("You entered a math expression.");
 					break;
 			}
 		}
