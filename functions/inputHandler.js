@@ -54,30 +54,6 @@ function calculateQuestionSimilarity(questions) {
 	return levenstheinArray;
 }
 
-// Classify user input into the appropriate category
-function classifyInput(input) {
-
-	classArray = [0, 0, 0, 0]
-
-	if (addQuestionRegex.test(input)) {
-		classArray[0] = 1;
-	}
-	
-	if (deleteQuestionRegex.test(input)) {
-		classArray[1] = 1;
-	}
-	
-	if (dateRegex.test(input)) {
-		classArray[2] = 1;
-	}
-	
-	if (mathRegex.test(input)) {
-		classArray[3] = 1;
-	}
-	
-	return classArray;
-}
-
 // Validate date
 function validateDate(date) {
 	const dateArray = date.split("/");
@@ -122,6 +98,149 @@ function classifyDay(day) {
 	}
 }
 
+// Validate math expression
+function validateMathExpression(str) {
+	// Remove all characters except +, -, *, /, ^, (, ) and digits
+	str = str.replace(/[^\d+\-*/^()]/g, '');
+  
+	// Check if parentheses are balanced
+	let parenthesesCount = 0;
+	for (let i = 0; i < str.length; i++) {
+		if (str[i] === '(') {
+			parenthesesCount++;
+		} else if (str[i] === ')') {
+			parenthesesCount--;
+		}
+  
+		if (parenthesesCount < 0) {
+			return false;
+		}
+	}
+	if (parenthesesCount !== 0) {
+	  	return false;
+	}
+  
+	// Check if digits are followed by operators, and operators are followed by digits or parentheses
+	for (let i = 0; i < str.length; i++) {
+		const char = str[i];
+		const nextChar = str[i + 1];
+
+		// TODO: Handle case with whitespace between two numbers
+
+		// if (/\d/.test(char)) {
+		// 	if (/[+\-*/^)]/.test(nextChar) || nextChar === undefined) {
+		// 		continue;
+		// 	} else {
+		// 		return false;
+		// 	}
+		// }
+	
+		if (/[+\-*/^]/.test(char)) {
+			if (/\d|\(/.test(nextChar)) {
+				continue;
+			} else {
+				return false;
+			}
+		}
+	}
+  
+	return true;
+}
+
+// Evaluate math expression
+function evaluateExpression(expression) {
+	const operators = {
+	  	'+': (a, b) => a + b,
+	  	'-': (a, b) => a - b,
+	  	'*': (a, b) => a * b,
+	  	'/': (a, b) => a / b,
+	  	'^': (a, b) => Math.pow(a, b)
+	};
+  
+	const precedence = {
+	  	'+': 1,
+	  	'-': 1,
+	  	'*': 2,
+	  	'/': 2,
+	  	'^': 3,
+	  	'(': 0
+	};
+  
+	const outputQueue = [];
+	const operatorStack = [];
+  
+	expression = expression.replace(/\s+/g, '');
+  
+	const tokens = expression.split(/([+\-*/^()])/);
+  
+	tokens.forEach((token) => {
+	  	if (!token) {
+			return;
+	  	}
+  
+	  	if (/\d+/.test(token)) {
+			outputQueue.push(parseFloat(token));
+	  	} else if (token in operators) {
+			while (operatorStack.length && precedence[operatorStack[operatorStack.length - 1]] >= precedence[token]) {
+		  		outputQueue.push(operatorStack.pop());
+			}
+  
+			operatorStack.push(token);
+	  	} else if (token === '(') {
+			operatorStack.push(token);
+	  	} else if (token === ')') {
+			while (operatorStack[operatorStack.length - 1] !== '(') {
+		  		outputQueue.push(operatorStack.pop());
+			}
+  
+			operatorStack.pop();
+	  	}
+	});
+  
+	while (operatorStack.length) {
+	  outputQueue.push(operatorStack.pop());
+	}
+  
+	const operandStack = [];
+  
+	outputQueue.forEach((token) => {
+	  	if (typeof token === 'number') {
+			operandStack.push(token);
+	  	} else {
+			const b = operandStack.pop();
+			const a = operandStack.pop();
+  
+			operandStack.push(operators[token](a, b));
+	  	}
+	});
+  
+	return operandStack.pop();
+}  
+
+// Classify user input into the appropriate category
+function classifyInput(input) {
+
+	classArray = [0, 0, 0, 0]
+
+	if (addQuestionRegex.test(input)) {
+		classArray[0] = 1;
+	}
+	
+	if (deleteQuestionRegex.test(input)) {
+		classArray[1] = 1;
+	}
+	
+	if (dateRegex.test(input)) {
+		classArray[2] = 1;
+	}
+	
+	if (mathRegex.test(input)) {
+		classArray[3] = 1;
+	}
+	
+	return classArray;
+}
+
 // Create a function to handle user input
 function handleInput(input) {
 	// Classify user input
@@ -153,16 +272,28 @@ function handleInput(input) {
 						const reformattedDate = dateArray[2] + "-" + dateArray[1] + "-" + dateArray[0];
 						const day = new Date(reformattedDate).getDay();
 						console.log("It's " + classifyDay(day) + ".");
+					} else {
+						console.log("Please enter the date in the format DD/MM/YYYY.");
 					}
 
 					break;
 				case 3:
-					// Does not calculate the result of the math expression if it is also a valid date
-					if (dateRegex.test(input) && validateDate(input.match(dateRegex)[0])) {
+					// Does not calculate the result of the math expression if it resembles a date
+					if (dateRegex.test(input)) {
 						break;
 					}
 
-					console.log("You entered a math expression.");
+					// TODO: Handle multiple occurences of math expressions
+
+					let mathExp = input.match(mathRegex)[0];
+
+					// Validate and calculate the result of the math expression if it is valid
+					if (validateMathExpression(mathExp)) {
+						console.log("The result is " + evaluateExpression(mathExp) + ".");
+					} else {
+						console.log("Invalid math expression.");
+					}
+
 					break;
 			}
 		}
