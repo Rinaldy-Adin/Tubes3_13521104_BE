@@ -1,16 +1,16 @@
 // Input classifiers
 
 // Regex for math expression
-const mathRegex = /\(*\s*(\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\d+(.\d+)?)|\)+|\(+)*)+/
+const mathRegex = /\(*\s*(\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\d+(.\d+)?)|\)+|\(+)*)+/;
 
 // Regex for date
-const dateRegex = /\b(\d\d|\d)\s*\/\s*(\d\d|\d)\s*\/\s*\d\d\d\d\b/;
+const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
 
 // Regex for add question command
-const addQuestionRegex = /\btambahkan\s*pertanyaan\s*(.+)\s*dengan\s*jawaban\s*(.+)\b/i;
+const addQuestionRegex = /tambah(kan)?\s*pertanyaan\s*(.+)\s*(dengan)?\s*jawaban\s*(.+)/i;
 
 // Regex for delete question command
-const deleteQuestionRegex = /\bhapus\s*pertanyaan\s*(.+)\b/i;
+const deleteQuestionRegex = /hapus\s*pertanyaan\s*(.+)/i;
 
 // Levensthein distance to calculate similarity of strings
 function levenshteinDistance(str1, str2) {
@@ -57,11 +57,15 @@ function calculateQuestionSimilarity(questions) {
 // Validate date
 function validateDate(date) {
 	const dateArray = date.split("/");
+	if (dateArray.length !== 3) {
+		return false;
+	}
+
 	const day = parseInt(dateArray[0]);
 	const month = parseInt(dateArray[1]);
 	const year = parseInt(dateArray[2]);
 
-	if (day < 1 || day > 31) {
+	if (day < 1 || (day > 30 && (month === 4 || month === 6 || month === 9 || month === 11)) || (day > 31 && (month === 1 || month === 3 || month === 5 || month === 7 || month === 8 || month === 10 || month === 12))) {
 		return false;
 	}
 
@@ -126,14 +130,14 @@ function validateMathExpression(str) {
 		const nextChar = str[i + 1];
 
 		if (/\d\s*/.test(char)) {
-			if (/[+\-*/^)]/.test(nextChar) || nextChar === undefined) {
+			if (/[\+\-\*\/\^\(\)]|\d/.test(nextChar) || nextChar === undefined) {
 				continue;
 			} else {
 				return false;
 			}
 		}
 	
-		if (/[+\-*/^]\s*/.test(char)) {
+		if (/[\+\-\*\/\^]\s*/.test(char)) {
 			if (/\d|\(/.test(nextChar)) {
 				continue;
 			} else {
@@ -276,14 +280,14 @@ function handleInput(input) {
 
 					break;
 				case 3:
-					// Does not calculate the result of the math expression if it resembles a date
-					if (dateRegex.test(input)) {
-						break;
+					let mathExp = input.match(mathRegex)[0];
+					
+					// TODO: Handle excluding dates from math expressions
+					if (dateRegex.test(mathExp)) {
+						return;
 					}
 
 					// TODO: Handle multiple occurences of math expressions
-
-					let mathExp = input.match(mathRegex)[0];
 
 					// Validate and calculate the result of the math expression if it is valid
 					if (validateMathExpression(mathExp)) {
