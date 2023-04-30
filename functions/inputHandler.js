@@ -1,7 +1,7 @@
 // Input classifiers
 
 // Regex for math expression
-const mathRegex = /\b\d+(\.\d+)?\s*([-+*/^]\s*\d+(\.\d+)?\s*)+\b/i;
+const mathRegex = /\(*\s*(\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\d+(.\d+)?)|\)+|\(+)*)+/
 
 // Regex for date
 const dateRegex = /\b(\d\d|\d)\s*\/\s*(\d\d|\d)\s*\/\s*\d\d\d\d\b/;
@@ -125,17 +125,15 @@ function validateMathExpression(str) {
 		const char = str[i];
 		const nextChar = str[i + 1];
 
-		// TODO: Handle case with whitespace between two numbers
-
-		// if (/\d/.test(char)) {
-		// 	if (/[+\-*/^)]/.test(nextChar) || nextChar === undefined) {
-		// 		continue;
-		// 	} else {
-		// 		return false;
-		// 	}
-		// }
+		if (/\d\s*/.test(char)) {
+			if (/[+\-*/^)]/.test(nextChar) || nextChar === undefined) {
+				continue;
+			} else {
+				return false;
+			}
+		}
 	
-		if (/[+\-*/^]/.test(char)) {
+		if (/[+\-*/^]\s*/.test(char)) {
 			if (/\d|\(/.test(nextChar)) {
 				continue;
 			} else {
@@ -307,6 +305,7 @@ const readline = require("readline").createInterface({
 });
 
 readline.question("Enter your input: ", input => {
+	// console.log(input.match(mathRegex) == null ? "No math expression" : input.match(mathRegex)[0]);
 	handleInput(input.toLowerCase());
 	readline.close();
 })
