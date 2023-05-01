@@ -4,6 +4,8 @@ const { kmp, boyerMoore, levenshteinDistance } = require('../functions/stringMat
 // Defaults to KMP
 let algoUsed = 'KMP';
 
+const exports = module.exports = {};
+
 // Add question to the database
 exports.addQuestion = (req, res) => {
   	const question = new Question({
