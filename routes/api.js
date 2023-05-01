@@ -15,4 +15,20 @@ router.get('/session/', (req, res) => {
 
 })
 
+router.post('/algotype', (req, res) => {
+    const type = req.body.type;
+    switch (type) {
+        case 'KMP':
+            // Pilih KMP
+            console.log("KMP");
+            break;
+        case 'BM':
+            // Pilih BM
+            console.log("BM");
+            break;
+        default:
+            break;
+    }
+});
+
 module.exports = router;
