@@ -12,7 +12,16 @@ router.post('/question', (req, res) => {
 });
 
 router.get('/session/', (req, res) => {
-
+    const id = req.query.id;
+    Chat.findById(id, (err, chat) => {
+        if (err) {
+            return res.status(404).json({
+                error: "Could not find chat"
+            });
+        } else {
+            res.json(chat);
+        }
+    });
 })
 
 router.post('/algotype', (req, res) => {
