@@ -166,4 +166,18 @@ exports.getAnswerForQuestion = async (req, res) => {
     }
   };
 
+// Reset all questions in the database
+exports.resetQuestions = (req, res) => {
+	Question.deleteMany({}, (err) => {
+		if (err) {
+			return res.status(400).json({
+				error: "Could not reset questions in database"
+			});
+		}
+		res.json({
+			message: "Questions reset successfully"
+		});
+	});
+};
+
 module.exports = exports;

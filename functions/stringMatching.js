@@ -92,7 +92,7 @@ function buildLast(pattern) {
 }
 
 // Tester program
-const text = "ababababca";
-const pattern = "babc";
-console.log(kmp(text, pattern));
-console.log(boyerMoore(text, pattern));
+// const text = "ababababca";
+// const pattern = "babc";
+// console.log(kmp(text, pattern));
+// console.log(boyerMoore(text, pattern));
