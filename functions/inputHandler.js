@@ -266,6 +266,7 @@ function classifyInput(input) {
 function handleInput(input) {
     // Classify user input
     const category = classifyInput(input);
+	let answers = [];
 
     // TODO: Find exact match in database to prioritize answering
     if (
@@ -274,16 +275,18 @@ function handleInput(input) {
         category[2] === 0 &&
         category[3] === 0
     ) {
-        return 'Check database for questions.';
+        answers.push('Check the database for answers.');
     }
 
     for (let i = 0; i < category.length; i++) {
         if (category[i] === 1) {
             switch (i) {
                 case 0:
-                    return 'You entered an add question command.';
+                    answers.push('You entered an add question command.');
+					break;
                 case 1:
-                    return 'You entered a delete question command.';
+                    answers.push('You entered a delete question command.');
+					break;
                 case 2:
                     let dateMatch = input.match(dateRegex)[0];
 
@@ -299,35 +302,38 @@ function handleInput(input) {
                             '-' +
                             dateArray[0];
                         const day = new Date(reformattedDate).getDay();
-                        return "It's " + classifyDay(day) + '.';
+                        answers.push("It's " + classifyDay(day) + '.');
                     } else {
-                        return 'Please enter the date in the format DD/MM/YYYY.';
+                        answers.push('Please enter the date in the format DD/MM/YYYY.');
                     }
 
-                    break;
+					break;
                 case 3:
-                    let mathExp = input.match(mathRegex)[0];
+					// Delete the date from the input while it exists
+					let temp = input;
+					while (temp.match(dateRegex) != null) {
+						temp = temp.replace(dateRegex, '');
+					}
 
-                    // TODO: Handle excluding dates from math expressions
-                    if (dateRegex.test(mathExp)) {
-                        return;
-                    }
-
+                    let mathExp = temp.match(mathRegex)[0];
+					
                     // TODO: Handle multiple occurences of math expressions
 
                     // Validate and calculate the result of the math expression if it is valid
                     if (validateMathExpression(mathExp)) {
-                        return (
+                        answers.push(
                             'The result is ' + evaluateExpression(mathExp) + '.'
                         );
                     } else {
-                        console.log('Invalid math expression.');
+                        answers.push('Please enter a valid math expression.');
                     }
 
-                    break;
+					break;
             }
         }
     }
+
+	return answers;
 }
 
 // Tester program
@@ -338,7 +344,10 @@ function handleInput(input) {
 
 // readline.question('Enter your input: ', (input) => {
 //     // console.log(input.match(mathRegex) == null ? "No math expression" : input.match(mathRegex)[0]);
-//     handleInput(input.toLowerCase());
+//     let ans = handleInput(input.toLowerCase());
+// 	for (let i = 0; i < ans.length; i++) {
+// 		console.log(ans[i]);
+// 	}
 //     readline.close();
 // });
 
