@@ -1,22 +1,18 @@
 const express = require('express');
-const Question = require('../models/Question');
+const inputHandler = require('../functions/inputHandler');
+const Chat = require('../models/Chat')
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
-    res.send('hello');
+router.post('/question', (req, res) => {
+    const question = req.body.message.question;
+    const answer = inputHandler(question);
+
+    res.json({question, answer})
 });
 
-router.get('/question', (req, res) => {
-    const questionDetail = { question: 'hello', answer: 'hi' };
+router.get('/session/', (req, res) => {
 
-    const question = new Question(questionDetail);
-
-    question.save().then(() => {
-        console.log('saved');
-    });
-
-    res.send('hello from question');
-});
+})
 
 module.exports = router;

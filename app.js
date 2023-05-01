@@ -2,6 +2,7 @@ const createError = require('http-errors');
 const express = require('express');
 const logger = require('morgan');
 const mongoose = require('mongoose');
+const cors = require('cors');
 require('dotenv').config();
 
 mongoose.connect(process.env.MONGODB_URI);
@@ -12,6 +13,9 @@ const apiRouter = require('./routes/api');
 
 const app = express();
 
+app.use(cors({
+    origin: '*'
+}))
 app.use(logger('dev'));
 app.use(express.json());
 

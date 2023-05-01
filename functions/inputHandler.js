@@ -274,19 +274,16 @@ function handleInput(input) {
         category[2] === 0 &&
         category[3] === 0
     ) {
-        console.log('Check database for questions.');
-        return;
+        return 'Check database for questions.';
     }
 
     for (let i = 0; i < category.length; i++) {
         if (category[i] === 1) {
             switch (i) {
                 case 0:
-                    console.log('You entered an add question command.');
-                    break;
+                    return 'You entered an add question command.';
                 case 1:
-                    console.log('You entered a delete question command.');
-                    break;
+                    return 'You entered a delete question command.';
                 case 2:
                     let dateMatch = input.match(dateRegex)[0];
 
@@ -302,11 +299,9 @@ function handleInput(input) {
                             '-' +
                             dateArray[0];
                         const day = new Date(reformattedDate).getDay();
-                        console.log("It's " + classifyDay(day) + '.');
+                        return "It's " + classifyDay(day) + '.';
                     } else {
-                        console.log(
-                            'Please enter the date in the format DD/MM/YYYY.'
-                        );
+                        return 'Please enter the date in the format DD/MM/YYYY.';
                     }
 
                     break;
@@ -322,7 +317,7 @@ function handleInput(input) {
 
                     // Validate and calculate the result of the math expression if it is valid
                     if (validateMathExpression(mathExp)) {
-                        console.log(
+                        return (
                             'The result is ' + evaluateExpression(mathExp) + '.'
                         );
                     } else {
@@ -336,13 +331,15 @@ function handleInput(input) {
 }
 
 // Tester program
-const readline = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+// const readline = require('readline').createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
 
-readline.question('Enter your input: ', (input) => {
-    // console.log(input.match(mathRegex) == null ? "No math expression" : input.match(mathRegex)[0]);
-    handleInput(input.toLowerCase());
-    readline.close();
-});
+// readline.question('Enter your input: ', (input) => {
+//     // console.log(input.match(mathRegex) == null ? "No math expression" : input.match(mathRegex)[0]);
+//     handleInput(input.toLowerCase());
+//     readline.close();
+// });
+
+module.exports = handleInput;
