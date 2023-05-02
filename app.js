@@ -9,6 +9,10 @@ mongoose.connect(process.env.MONGODB_URI);
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+require('./models/Session');
+require('./models/Chat');
+require('./models/Question');
+
 const apiRouter = require('./routes/api');
 
 const app = express();
