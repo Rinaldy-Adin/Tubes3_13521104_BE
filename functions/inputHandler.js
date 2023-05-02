@@ -2,14 +2,14 @@
 const { addQuestion, deleteQuestion, getAnswer } = require('./CRUD');
 
 // Connect to the database
-const mongoose = require('mongoose');
-require('dotenv').config();
-mongoose.connect(process.env.MONGODB_URI);
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.on('connection', (stream) => {
-    console.log('Connected!');
-  });
+// const mongoose = require('mongoose');
+// require('dotenv').config();
+// mongoose.connect(process.env.MONGODB_URI);
+// const db = mongoose.connection;
+// db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+// db.on('connection', (stream) => {
+//     console.log('Connected!');
+//   });
 
 // Regex for math expression
 const mathRegex =
@@ -360,17 +360,17 @@ async function handleInput(input, algoType) {
 }
 
 // Tester program
-const readline = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+// const readline = require('readline').createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
 
-readline.question('Enter your input: ', async (input) => {
-    let ans = await handleInput(input.toLowerCase(), 'KMP');
-	for (let i = 0; i < ans.length; i++) {
-		console.log(ans[i]);
-	}
-    readline.close();
-});
+// readline.question('Enter your input: ', async (input) => {
+//     let ans = await handleInput(input.toLowerCase(), 'KMP');
+// 	for (let i = 0; i < ans.length; i++) {
+// 		console.log(ans[i]);
+// 	}
+//     readline.close();
+// });
 
 module.exports = handleInput;

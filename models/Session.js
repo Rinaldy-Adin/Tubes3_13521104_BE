@@ -5,7 +5,7 @@ const Types = Schema.Types;
 const SessionSchema = new Schema({
     chatLog: [{
         type: Types.ObjectId,
-        ref: 'chats'
+        ref: 'Chat'
     }],
 });
 
