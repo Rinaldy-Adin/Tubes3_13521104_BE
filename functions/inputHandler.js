@@ -1,15 +1,6 @@
 // Import modules
 const { addQuestion, deleteQuestion, getAnswer } = require('./CRUD');
-
-// Connect to the database
-const mongoose = require('mongoose');
-require('dotenv').config();
-mongoose.connect(process.env.MONGODB_URI);
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.on('connection', (stream) => {
-    console.log('Connected!');
-  });
+const { tokenizeString, parseAddQuestionRegex, parseDeleteQuestionRegex } = require('./preprocessor');
 
 // Regex for math expression
 const mathRegex =
@@ -20,8 +11,7 @@ const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
 
 // Regex for add question command
 const addQuestionKeywordRegex = /tambah(kan)?\s*pertanyaan/i;
-const addQuestionRegex =
-    /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawaban\s*"([^"]+)"/i;
+const addQuestionRegex = /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawaban\s*"([^"]+)"/i;
 
 // Regex for delete question command
 const deleteQuestionKeywordRegex = /hapus\s*pertanyaan/i;
@@ -234,139 +224,154 @@ function classifyInput(input) {
     return classArray;
 }
 
-function parseAddQuestionRegex(text) {
-    const match = text.match(addQuestionRegex);
-    if (match) {
-        const question = match[2].trim();
-        const answer = match[3].trim();
-        if (question && answer) {
-            return {
-                question,
-                answer
-            };
-        }
-    }
-    return null;
-}
-
-function parseDeleteQuestionRegex(input) {
-    const match = input.match(deleteQuestionRegex);
-    if (!match) {
-        return null;
-    }
-    return match[1].trim();
-}
-
 // Create a function to handle user input
 async function handleInput(input, algoType) {
-    // Classify user input
-    const category = classifyInput(input);
-	let answers = [];
+    // Initialize the answers array
+    let answers = [];
 
-    if (
-        category[0] === 0 &&
-        category[1] === 0 &&
-        category[2] === 0 &&
-        category[3] === 0
-    ) {
-        // Return if the query resembles add or delete question keywords
-        if (input.match(addQuestionKeywordRegex) || input.match(deleteQuestionKeywordRegex)) {
-            answers.push('Invalid command to add or delete questions. Please follow the format `Tambahkan pertanyaan \"<question>\" dengan jawaban \"<answer>\"\` or `Hapus pertanyaan \"<question>\"`.');
-            return answers;
-        }
-
-        // Get answer from algorithm
-        const result = await getAnswer(input, algoType);
-
-        // If the database is empty, return an error message
-        if (result.error) {
-            answers.push(result.error);
-            return answers;
-        }
-
-        // If the question is not found, return similar questions
-        if (result.similar) {
-            const similarQuestions = "";
-            for (let i = 0; i < result.error.length; i++) {
-                similarQuestions += (i+1) + ". " + result.error[i].question + "\n";
-            }
-            answers.push('Question not found. Did you mean:\n' + similarQuestions);
-            return answers;
-        } else {
-            answers.push(result.answer);
-            // Delete the question from the input string if the question is found
-            input = input.replace(result.question, '');
-        }
+    // Return if the input does not contain a valid delimiter
+    if (!input.match(/[;?]/)) {
+        answers.push('Please include delimiters such as `;` or `?` in your query.');
+        return answers;
     }
 
-    for (let i = 0; i < category.length; i++) {
-        if (category[i] === 1) {
-            switch (i) {
-                case 0:
-                    let addQuestionMatch = input.match(addQuestionRegex)[0];
-                    const questionToAdd = parseAddQuestionRegex(addQuestionMatch);
-                    if (questionToAdd) {
-                        addQuestion(questionToAdd.question, questionToAdd.answer);
-                        answers.push('Question \"' + questionToAdd.question + '\" added.');
-                    } else {
-                        answers.push('Failed to parse add question command. Make sure question and answer are not empty.');
+    // Tokenize the input
+    const tokens = tokenizeString(input);
+
+    // Iterate through the tokens
+    for (const token of tokens) {
+        // Classify the token
+        let category = classifyInput(token);
+
+        // Skip if the query resembles add or delete question keywords but does not follow the format
+        if ((token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) || (token.match(deleteQuestionKeywordRegex)) && !token.match(deleteQuestionRegex)) {
+            answers.push('Invalid command to add or delete questions. Please follow the format `Tambahkan pertanyaan \"<question>\" dengan jawaban \"<answer>\"\` or `Hapus pertanyaan \"<question>\"`.');
+            continue;
+        }
+
+        // Look for questions in the database if it does not resemble any special features
+        if (
+            category[0] === 0 &&
+            category[1] === 0 &&
+            category[2] === 0 &&
+            category[3] === 0
+        ) {
+            // Get answer from algorithm
+            const result = await getAnswer(token, algoType);
+        
+            // If the database is empty, push an error message
+            if (result.error) {
+                answers.push(result.error);
+                continue;
+            }
+        
+            // If the question is not found, return similar questions
+            if (result.similar) {
+                let similarQuestions = "";
+                for (let i = 0; i < result.similar.length; i++) {
+                    similarQuestions += (i+1) + ". " + result.similar[i];
+                    if (i !== result.similar.length - 1) {
+                        similarQuestions += "\n";
                     }
-					break;
-                case 1:
-                    const questionToDelete = parseDeleteQuestionRegex(input);
-                    if (questionToDelete) {
-                        const deleteStatus = await deleteQuestion(questionToDelete, algoType);
-                        if (deleteStatus.error) {
-                            answers.push(deleteStatus.error);
+                }
+                answers.push('Question not found. Did you mean:\n' + similarQuestions);
+                continue;
+            } else {
+                answers.push(result.answer);
+                continue;
+            }
+        }
+    
+        // Otherwise, check if the token is a command
+        for (let i = 0; i < category.length; i++) {
+            if (category[i] === 1) {
+                switch (i) {
+                    case 0:
+                        let addQuestionMatch = token.match(addQuestionRegex)[0];
+                        const questionToAdd = parseAddQuestionRegex(addQuestionMatch);
+
+                        // Check if the question to add resembles a special feature
+                        if (questionToAdd.question.match(addQuestionKeywordRegex) || 
+                            questionToAdd.question.match(deleteQuestionKeywordRegex) ||
+                            questionToAdd.question.match(dateRegex) ||
+                            questionToAdd.question.match(mathRegex)) {
+                                answers.push('Invalid question to add. Please exclude dates, math expressions, and add/delete question keywords.');
+                                break;
+                            }
+
+                        // Add the question to the database
+                        if (questionToAdd) {
+                            const addQ = await addQuestion(questionToAdd.question, questionToAdd.answer, algoType);
+                            if (addQ.error) {
+                                // If error occurs, push an error message
+                                answers.push(addQ.error);
+                            } else {
+                                answers.push(addQ.message);
+                            }
                         } else {
-                            answers.push('Question \"' + questionToDelete + '\" deleted.');
+                            answers.push('Failed to parse add question command. Make sure question and answer is not empty.');
                         }
-                    } else {
-                        answers.push('Failed to parse delete question command.');
-                    }
-					break;
-                case 2:
-                    let dateMatch = input.match(dateRegex)[0];
 
-                    // TODO: Handle multiple occurences of dates
+                        break;
+                    case 1:
+                        const questionToDelete = parseDeleteQuestionRegex(token);
+                        if (questionToDelete) {
+                            const deleteStatus = await deleteQuestion(questionToDelete, algoType);
+                            if (deleteStatus.error) {
+                                // If the database is empty or question is not found, push an error message
+                                answers.push(deleteStatus.error);
+                            } else {
+                                answers.push('Question \"' + questionToDelete + '\" successfully deleted.');
+                            }
+                        } else {
+                            answers.push('Failed to parse delete question command. Please follow the format `Hapus pertanyaan \"<question>\"`.');
+                        }
 
-                    // Validate and get the day of the week if date is valid
-                    if (validateDate(dateMatch)) {
-                        const dateArray = dateMatch.split('/');
-                        const reformattedDate =
-                            dateArray[2] +
-                            '-' +
-                            dateArray[1] +
-                            '-' +
-                            dateArray[0];
-                        const day = new Date(reformattedDate).getDay();
-                        answers.push("It's " + classifyDay(day) + '.');
-                    } else {
-                        answers.push('Please enter the date in the format DD/MM/YYYY.');
-                    }
+                        break;
+                    case 2:
+                        let dateMatch = token.match(dateRegex)[0];
+    
+                        // Get the day of the week if date is valid
+                        if (validateDate(dateMatch)) {
+                            const dateArray = dateMatch.split('/');
+                            const reformattedDate =
+                                dateArray[2] +
+                                '-' +
+                                dateArray[1] +
+                                '-' +
+                                dateArray[0];
+                            const day = new Date(reformattedDate).getDay();
+                            answers.push("It's " + classifyDay(day) + '.');
+                        } else {
+                            answers.push('Please enter the date in the format DD/MM/YYYY.');
+                        }
+    
+                        break;
+                    case 3:
+                        // Delete the date from the token while it exists to avoid confliction with math expression
+                        let temp = token;
+                        while (temp.match(dateRegex) != null) {
+                            temp = temp.replace(dateRegex, '');
+                        }
 
-					break;
-                case 3:
-					// Delete the date from the input while it exists
-					let temp = input;
-					while (temp.match(dateRegex) != null) {
-						temp = temp.replace(dateRegex, '');
-					}
+                        // If the remaining string does not contain any math expression, continue
+                        if (temp.match(mathRegex) == null) {
+                            continue;
+                        }
 
-                    let mathExp = temp.match(mathRegex)[0];
-					
-                    // TODO: Handle multiple occurences of math expressions
+                        let mathExp = temp.match(mathRegex)[0];
+    
+                        // Validate and calculate the result of the math expression if it is valid
+                        if (validateMathExpression(mathExp)) {
+                            answers.push(
+                                'The result is ' + evaluateExpression(mathExp) + '.'
+                            );
+                        } else {
+                            answers.push('Please enter a valid math expression.');
+                        }
 
-                    // Validate and calculate the result of the math expression if it is valid
-                    if (validateMathExpression(mathExp)) {
-                        answers.push(
-                            'The result is ' + evaluateExpression(mathExp) + '.'
-                        );
-                    } else {
-                        answers.push('Please enter a valid math expression.');
-                    }
-
-					break;
+                        break;
+                }
             }
         }
     }

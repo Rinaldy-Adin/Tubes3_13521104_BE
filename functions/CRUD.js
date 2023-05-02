@@ -1,5 +1,15 @@
 // CRUD for the database
 
+// Connect to the database
+const mongoose = require('mongoose');
+require('dotenv').config();
+mongoose.connect(process.env.MONGODB_URI);
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.on('connection', (stream) => {
+    console.log('Connected!');
+  });
+
 // Import the Question model
 const Question = require('../models/Question');
 
@@ -7,22 +17,64 @@ const Question = require('../models/Question');
 const { kmp, boyerMoore, levenshteinDistance } = require('./stringMatching');
 
 // Add a question to the database
-function addQuestion(question, answer) {
+async function addQuestion(question, answer, algoType) {
+
+    // If the question already exists, update the answer
+    const questions = await Question.find();
+    for (let i = 0; i < questions.length; i++) {
+        if (algoType === 'KMP') {
+            if (kmp(questions[i].question, question) !== -1) {
+                questions[i].answer = answer;
+                const updateStatus = await questions[i].save();
+                if (updateStatus) {
+                    return {
+                        message: "Question \"" + question + "\" already exists. Updated answer successfully"
+                    };
+                } else {
+                    return {
+                        error: "Could not update question in database"
+                    };
+                }
+            }
+        } else if (algoType === 'BM') {
+            if (boyerMoore(questions[i].question, question) !== -1) {
+                questions[i].answer = answer;
+                const updateStatus = await questions[i].save();
+                if (updateStatus) {
+                    return {
+                        message: "Question \"" + question + "\" already exists. Updated answer successfully"
+                    };
+                } else {
+                    return {
+                        error: "Could not update question in database"
+                    };
+                }
+            }
+        }
+    }
+
+    // If the question does not exist, add it to the database
     const newQuestion = new Question({
         question,
         answer
     });
 
-    newQuestion.save().then((err) => {
-        if (err) {
+    try {
+        const saveStatus = await newQuestion.save();
+        if (saveStatus) {
             return {
-                error: "Could not save question to database"
+                message: "Question \"" + question + "\" added successfully"
+            };
+        } else {
+            return {
+                error: "Could not add question to database"
             };
         }
+    } catch (err) {
         return {
-            message: "Question added successfully"
+            error: err
         };
-    });
+    }
 }
 
 // Delete a question from the database
@@ -121,17 +173,22 @@ async function getAnswer(question, algoType) {
         const similarity = ((maxLength - minDistance) / maxLength);
 
         if (similarity >= 0.9 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
-            index = minIndex;
+            // Get answer
+            return {
+                answer: questions[minIndex].answer
+            };
         } else {
             // Return a list of three most similar questions
             questionDistances.sort((a, b) => {
                 return a.distance - b.distance;
             });
+            
             const similarQuestions = [];
             let similarLen = questionDistances.length > 3 ? 3 : questionDistances.length;
             for (let i = 0; i < similarLen; i++) {
-                similarQuestions.push(questionDistances[i].question);
+                similarQuestions.push(questionDistances[i].question + "?");
             }
+            
             return {
                 similar: similarQuestions
             };
