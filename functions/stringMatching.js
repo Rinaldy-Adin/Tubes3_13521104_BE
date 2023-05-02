@@ -1,6 +1,41 @@
 // String matching algorithms
 
 /**
+ * Levenshtein distance
+ * @param {string} str1 
+ * @param {string} str2 
+ * @returns {number} Edit distance between str1 and str2
+ */
+function levenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array.from({ length: m + 1 }, () =>
+        Array.from({ length: n + 1 }, () => 0)
+    );
+
+    for (let i = 0; i <= m; i++) {
+        dp[i][0] = i;
+    }
+
+    for (let j = 0; j <= n; j++) {
+        dp[0][j] = j;
+    }
+
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (str1[i - 1] === str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] =
+                    1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+            }
+        }
+    }
+
+    return dp[m][n];
+}
+
+/**
  * KMP algorithm
  * @param {string} text
  * @param {string} pattern
@@ -8,6 +43,10 @@
  * 
  */
 function kmp(text, pattern) {
+    if (text.length != pattern.length) {
+        return -1;
+    }
+
     let i = 0;
     let j = 0;
     const prefix = computePrefix(pattern);
@@ -59,6 +98,10 @@ function computePrefix(pattern) {
  * 
  */
 function boyerMoore(text, pattern) {
+    if (text.length != pattern.length) {
+        return -1;
+    }
+
     const last = buildLast(pattern);
     let i = pattern.length - 1;
     let j = pattern.length - 1;
@@ -90,6 +133,12 @@ function buildLast(pattern) {
     }
     return last;
 }
+
+module.exports = {
+    levenshteinDistance,
+    kmp,
+    boyerMoore
+};
 
 // Tester program
 // const text = "ababababca";

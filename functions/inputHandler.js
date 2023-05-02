@@ -1,4 +1,5 @@
-// Input classifiers
+// Import modules
+const { addQuestion, deleteQuestion, getAnswer } = require('./CRUD');
 
 // Regex for math expression
 const mathRegex =
@@ -8,52 +9,13 @@ const mathRegex =
 const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
 
 // Regex for add question command
+const addQuestionKeywordRegex = /tambah(kan)?\s*pertanyaan\s*(.+)\s*dengan\s*jawaban\s*(.+)/i;
 const addQuestionRegex =
-    /tambah(kan)?\s*pertanyaan\s*(.+)\s*(dengan)?\s*jawaban\s*(.+)/i;
+    /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawaban\s*"([^"]+)"/i;
 
 // Regex for delete question command
-const deleteQuestionRegex = /hapus\s*pertanyaan\s*(.+)/i;
-
-// Levensthein distance to calculate similarity of strings
-function levenshteinDistance(str1, str2) {
-    const m = str1.length;
-    const n = str2.length;
-    const dp = Array.from({ length: m + 1 }, () =>
-        Array.from({ length: n + 1 }, () => 0)
-    );
-
-    for (let i = 0; i <= m; i++) {
-        dp[i][0] = i;
-    }
-
-    for (let j = 0; j <= n; j++) {
-        dp[0][j] = j;
-    }
-
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            if (str1[i - 1] === str2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1];
-            } else {
-                dp[i][j] =
-                    1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-            }
-        }
-    }
-
-    return dp[m][n];
-}
-
-// Calculate the levenshtein distance of each question in the MongoDB database
-function calculateQuestionSimilarity(questions) {
-    const levenstheinArray = [];
-    for (let i = 0; i < questions.length; i++) {
-        levenstheinArray.push(
-            levenshteinDistance(questions[i].question, input)
-        );
-    }
-    return levenstheinArray;
-}
+const deleteQuestionKeywordRegex = /hapus\s*pertanyaan\s*(.+)/i;
+const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 
 // Validate date
 function validateDate(date) {
@@ -262,30 +224,74 @@ function classifyInput(input) {
     return classArray;
 }
 
+function parseAddQuestionRegex(text) {
+    const match = text.match(addQuestionRegex);
+    if (match) {
+        const question = match[2].trim();
+        const answer = match[3].trim();
+        if (question && answer) {
+            return {
+                question,
+                answer
+            };
+        }
+    }
+    return null;
+}
+
+function parseDeleteQuestionRegex(input) {
+    const match = input.match(deleteQuestionRegex);
+    if (!match) {
+        return null;
+    }
+    return match[1].trim();
+}
+
 // Create a function to handle user input
-function handleInput(input) {
+async function handleInput(input, algoType) {
     // Classify user input
     const category = classifyInput(input);
 	let answers = [];
 
-    // TODO: Find exact match in database to prioritize answering
     if (
         category[0] === 0 &&
         category[1] === 0 &&
         category[2] === 0 &&
         category[3] === 0
     ) {
-        answers.push('Check the database for answers.');
+        const result = await getAnswer(input, algoType);
+        if (result.error) {
+            answers.push(result.error);
+        } else {
+            answers.push(result.answer);
+        }
     }
 
     for (let i = 0; i < category.length; i++) {
         if (category[i] === 1) {
             switch (i) {
                 case 0:
-                    answers.push('You entered an add question command.');
+                    let addQuestionMatch = input.match(addQuestionRegex)[0];
+                    const questionToAdd = parseAddQuestionRegex(addQuestionMatch);
+                    if (questionToAdd) {
+                        addQuestion(questionToAdd.question, questionToAdd.answer);
+                        answers.push('Question \"' + questionToAdd.question + '\" added.');
+                    } else {
+                        answers.push('Failed to parse add question command.');
+                    }
 					break;
                 case 1:
-                    answers.push('You entered a delete question command.');
+                    const questionToDelete = parseDeleteQuestionRegex(input);
+                    if (questionToDelete) {
+                        const deleteStatus = await deleteQuestion(questionToDelete, algoType);
+                        if (deleteStatus.error) {
+                            answers.push(deleteStatus.error);
+                        } else {
+                            answers.push('Question \"' + questionToDelete + '\" deleted.');
+                        }
+                    } else {
+                        answers.push('Failed to parse delete question command.');
+                    }
 					break;
                 case 2:
                     let dateMatch = input.match(dateRegex)[0];
@@ -337,18 +343,17 @@ function handleInput(input) {
 }
 
 // Tester program
-// const readline = require('readline').createInterface({
-//     input: process.stdin,
-//     output: process.stdout,
-// });
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+});
 
-// readline.question('Enter your input: ', (input) => {
-//     // console.log(input.match(mathRegex) == null ? "No math expression" : input.match(mathRegex)[0]);
-//     let ans = handleInput(input.toLowerCase());
-// 	for (let i = 0; i < ans.length; i++) {
-// 		console.log(ans[i]);
-// 	}
-//     readline.close();
-// });
+readline.question('Enter your input: ', async (input) => {
+    let ans = await handleInput(input.toLowerCase(), 'KMP');
+	for (let i = 0; i < ans.length; i++) {
+		console.log(ans[i]);
+	}
+    readline.close();
+});
 
 module.exports = handleInput;
