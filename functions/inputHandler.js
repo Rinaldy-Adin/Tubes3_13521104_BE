@@ -277,10 +277,25 @@ async function handleInput(input, algoType) {
 
         // Get answer from algorithm
         const result = await getAnswer(input, algoType);
+
+        // If the database is empty, return an error message
         if (result.error) {
             answers.push(result.error);
+            return answers;
+        }
+
+        // If the question is not found, return similar questions
+        if (result.similar) {
+            const similarQuestions = "";
+            for (let i = 0; i < result.error.length; i++) {
+                similarQuestions += (i+1) + ". " + result.error[i].question + "\n";
+            }
+            answers.push('Question not found. Did you mean:\n' + similarQuestions);
+            return answers;
         } else {
             answers.push(result.answer);
+            // Delete the question from the input string if the question is found
+            input = input.replace(result.question, '');
         }
     }
 

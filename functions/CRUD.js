@@ -103,12 +103,14 @@ async function getAnswer(question, algoType) {
         }
     }
 
-    if (index === -1) {
+    if (index === -1 || !questions[index] || !questions[index].answer) {
         // Find approximate match using Levenshtein distance
+        const questionDistances = [];
         let minDistance;
         let minIndex;
         for (let i = 0; i < questions.length; i++) {
             const distance = levenshteinDistance(questions[i].question, question);
+            questionDistances.push({question: questions[i].question, distance: distance});
             if (minDistance == undefined || distance < minDistance) {
                 minDistance = distance;
                 minIndex = i;
@@ -120,19 +122,26 @@ async function getAnswer(question, algoType) {
 
         if (similarity >= 0.9 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
             index = minIndex;
+        } else {
+            // Return a list of three most similar questions
+            questionDistances.sort((a, b) => {
+                return a.distance - b.distance;
+            });
+            const similarQuestions = [];
+            let similarLen = questionDistances.length > 3 ? 3 : questionDistances.length;
+            for (let i = 0; i < similarLen; i++) {
+                similarQuestions.push(questionDistances[i].question);
+            }
+            return {
+                similar: similarQuestions
+            };
         }
-    }
-
-    if (index !== -1 && questions[index] && questions[index].answer) {
+    } else {
         // Get answer
         return {
             answer: questions[index].answer
         };
     }
-    
-    return {
-        error: "Could not find question in the database"
-    };
 }
 
 module.exports = {
