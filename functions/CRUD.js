@@ -1,12 +1,5 @@
 // CRUD for the database
 
-// Connect to the database
-const mongoose = require('mongoose');
-require('dotenv').config();
-mongoose.connect(process.env.MONGODB_URI);
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-
 // Import the Question model
 const Question = require('../models/Question');
 
@@ -110,8 +103,6 @@ async function getAnswer(question, algoType) {
         }
     }
 
-    console.log(index);
-
     if (index === -1) {
         // Find approximate match using Levenshtein distance
         let minDistance;
@@ -123,10 +114,11 @@ async function getAnswer(question, algoType) {
                 minIndex = i;
             }
         }
+        
+        const maxLength = Math.max(questions[minIndex].question.length, question.length);
+        const similarity = ((maxLength - minDistance) / maxLength);
 
-        let threshold = Math.ceil(0.2 * questions[minIndex].question.length);
-
-        if (minDistance < threshold) {
+        if (similarity >= 0.9 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
             index = minIndex;
         }
     }

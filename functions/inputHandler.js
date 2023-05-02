@@ -1,6 +1,16 @@
 // Import modules
 const { addQuestion, deleteQuestion, getAnswer } = require('./CRUD');
 
+// Connect to the database
+const mongoose = require('mongoose');
+require('dotenv').config();
+mongoose.connect(process.env.MONGODB_URI);
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.on('connection', (stream) => {
+    console.log('Connected!');
+  });
+
 // Regex for math expression
 const mathRegex =
     /\(*\s*(\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\d+(.\d+)?)|\)+|\(+)*)+/;
@@ -9,12 +19,12 @@ const mathRegex =
 const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
 
 // Regex for add question command
-const addQuestionKeywordRegex = /tambah(kan)?\s*pertanyaan\s*(.+)\s*dengan\s*jawaban\s*(.+)/i;
+const addQuestionKeywordRegex = /tambah(kan)?\s*pertanyaan/i;
 const addQuestionRegex =
     /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawaban\s*"([^"]+)"/i;
 
 // Regex for delete question command
-const deleteQuestionKeywordRegex = /hapus\s*pertanyaan\s*(.+)/i;
+const deleteQuestionKeywordRegex = /hapus\s*pertanyaan/i;
 const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 
 // Validate date
@@ -259,6 +269,13 @@ async function handleInput(input, algoType) {
         category[2] === 0 &&
         category[3] === 0
     ) {
+        // Return if the query resembles add or delete question keywords
+        if (input.match(addQuestionKeywordRegex) || input.match(deleteQuestionKeywordRegex)) {
+            answers.push('Invalid command to add or delete questions. Please follow the format `Tambahkan pertanyaan \"<question>\" dengan jawaban \"<answer>\"\` or `Hapus pertanyaan \"<question>\"`.');
+            return answers;
+        }
+
+        // Get answer from algorithm
         const result = await getAnswer(input, algoType);
         if (result.error) {
             answers.push(result.error);
@@ -277,7 +294,7 @@ async function handleInput(input, algoType) {
                         addQuestion(questionToAdd.question, questionToAdd.answer);
                         answers.push('Question \"' + questionToAdd.question + '\" added.');
                     } else {
-                        answers.push('Failed to parse add question command.');
+                        answers.push('Failed to parse add question command. Make sure question and answer are not empty.');
                     }
 					break;
                 case 1:
