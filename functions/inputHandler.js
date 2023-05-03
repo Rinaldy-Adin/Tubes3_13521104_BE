@@ -416,15 +416,15 @@ async function handleInput(input, algoType) {
 }
 
 // Tester program
-const readline = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+// const readline = require('readline').createInterface({
+//     input: process.stdin,
+//     output: process.stdout,
+// });
 
-readline.question('Enter your input: ', async (input) => {
-    let ans = await handleInput(input.toLowerCase(), 'KMP');
-	console.log(ans);
-    readline.close();
-});
+// readline.question('Enter your input: ', async (input) => {
+//     let ans = await handleInput(input.toLowerCase(), 'KMP');
+// 	console.log(ans);
+//     readline.close();
+// });
 
 module.exports = handleInput;
