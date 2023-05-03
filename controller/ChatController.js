@@ -2,9 +2,12 @@ const handleInput = require('../functions/inputHandler');
 const Chat = require('../models/Chat');
 const Session = require('../models/Session');
 
+// Defaults to KMP
+let algoType = 'KMP';
+
 exports.postChat = async (req, res) => {
     const question = req.body.message.question;
-    const answer = await handleInput(question.toLowerCase(), 'KMP');
+    const answer = await handleInput(question, algoType);
     const chatDetail = {question, answer: answer};
     const chat = new Chat(chatDetail);
 
@@ -24,16 +27,10 @@ exports.postChat = async (req, res) => {
 
 exports.postAlgoType = (req, res) => {
     const type = req.body.type;
-    switch (type) {
-        case 'KMP':
-            // Pilih KMP
-            console.log("KMP");
-            break;
-        case 'BM':
-            // Pilih BM
-            console.log("BM");
-            break;
-        default:
-            break;
+    if (type === 'KMP' || type === 'BM') {
+        algoType = type;
+        res.json({message: "Successfully set algo type"});
+    } else {
+        res.status(400).json({error: "Invalid algo type"});
     }
 }
