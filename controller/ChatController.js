@@ -5,7 +5,7 @@ const Session = require('../models/Session');
 exports.postChat = async (req, res) => {
     const question = req.body.message.question;
     const answer = await handleInput(question.toLowerCase(), 'KMP');
-    const chatDetail = {question, answer: answer[0]};
+    const chatDetail = {question, answer: answer};
     const chat = new Chat(chatDetail);
 
     try {
