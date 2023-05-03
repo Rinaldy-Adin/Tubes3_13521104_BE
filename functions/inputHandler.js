@@ -4,7 +4,7 @@ const { tokenizeString, parseAddQuestionRegex, parseDeleteQuestionRegex } = requ
 
 // Regex for math expression
 const mathRegex =
-    /\(*\s*(\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\d+(.\d+)?)|\)+|\(+)*)+/;
+    /\(*\s*(\-?\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\-?\d+(.\d+)?)|\)+|\(+)*)+/;
 
 // Regex for date
 const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
@@ -16,6 +16,9 @@ const addQuestionRegex = /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawab
 // Regex for delete question command
 const deleteQuestionKeywordRegex = /hapus\s*pertanyaan/i;
 const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
+
+// Regex for delimiter
+const delimiterRegex = /([;?])/ig;
 
 // Validate date
 function validateDate(date) {
@@ -55,25 +58,32 @@ function validateDate(date) {
     return true;
 }
 
-// Classify day of the week
-function classifyDay(day) {
-    switch (day) {
-        case 0:
-            return 'Sunday';
-        case 1:
-            return 'Monday';
-        case 2:
-            return 'Tuesday';
-        case 3:
-            return 'Wednesday';
-        case 4:
-            return 'Thursday';
-        case 5:
-            return 'Friday';
-        case 6:
-            return 'Saturday';
-        default:
-            return 'Invalid day';
+// Formats date output
+function formatDate(day, month, year) {
+    const date = new Date(year, month - 1, day);
+    const options = year >= 100 ? { month: 'long', day: 'numeric', year: 'numeric', weekday: 'long' }
+                                : { month: 'long', day: 'numeric', year: '2-digit', weekday: 'long' };
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    const parts = formatter.formatToParts(date);
+  
+    const suffix = getSuffix(day);
+    const monthName = parts.find(part => part.type === 'month').value;
+    const dateNumber = parts.find(part => part.type === 'day').value;
+    const yearNumber = parts.find(part => part.type === 'year').value;
+    const dayName = parts.find(part => part.type === 'weekday').value;
+  
+    return `${monthName} ${dateNumber}${suffix}, ${yearNumber} falls on a ${dayName}.`;
+}
+  
+function getSuffix(day) {
+    if (day >= 11 && day <= 13) {
+        return 'th';
+    }
+    switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
     }
 }
 
@@ -151,7 +161,12 @@ function evaluateExpression(expression) {
 
     expression = expression.replace(/\s+/g, '');
 
-    const tokens = expression.split(/([+\-*/^()])/);
+    const tokens = expression.split(/([+\/*^()])/).map((token, i, arr) => {
+        if (token === '-' && (i === 0 || /[\+\-\*\/\^]/.test(arr[i - 1]))) {
+          return token + arr[i + 1];
+        }
+        return token;
+      }).filter(token => token.trim().length > 0);
 
     tokens.forEach((token) => {
         if (!token) {
@@ -230,9 +245,13 @@ async function handleInput(input, algoType) {
     let answers = [];
 
     // Return if the input does not contain a valid delimiter
-    if (!input.match(/[;?]/)) {
-        answers.push('Please include delimiters such as `;` or `?` in your query.');
-        return answers;
+    if (!input.match(delimiterRegex)) {
+        // Delimiters are necessary only if input is trying to access multiple features
+        let category = classifyInput(input);
+        if (category.reduce((a, b) => a + b) > 1) {
+            answers.push('Please include delimiters such as `;` or `?` to access multiple features.');
+            return answers;
+        }
     }
 
     // Tokenize the input
@@ -243,10 +262,16 @@ async function handleInput(input, algoType) {
         // Classify the token
         let category = classifyInput(token);
 
-        // Skip if the query resembles add or delete question keywords but does not follow the format
-        if ((token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) || (token.match(deleteQuestionKeywordRegex)) && !token.match(deleteQuestionRegex)) {
-            answers.push('Invalid command to add or delete questions. Please follow the format `Tambahkan pertanyaan \"<question>\" dengan jawaban \"<answer>\"\` or `Hapus pertanyaan \"<question>\"`.');
-            continue;
+        // Return if the query resembles add question keywords but does not follow the format
+        if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
+            answers.push('Invalid command to add questions. Please follow the format [Tambah pertanyaan \"<question>\" \"<answer>\"].\nMake sure to exclude delimiters and double quotes on the question and answer.');
+            return answers;
+        }
+
+        // Return if the query resembles delete question keywords but does not follow the format
+        if (token.match(deleteQuestionKeywordRegex) && !token.match(deleteQuestionRegex)) {
+            answers.push('Invalid command to delete questions. Please follow the format [Hapus pertanyaan \"<question>\"].\nMake sure to exclude delimiters and double quotes on the question.');
+            return answers;
         }
 
         // Look for questions in the database if it does not resemble any special features
@@ -299,6 +324,12 @@ async function handleInput(input, algoType) {
                                 break;
                             }
 
+                        // Check if the question to add includes delimiters
+                        if (questionToAdd.question.match(delimiterRegex) || questionToAdd.answer.match(delimiterRegex)) {
+                            answers.push('Invalid question to add. Please exclude delimiters such as `;` or `?`.');
+                            break;
+                        }
+
                         // Add the question to the database
                         if (questionToAdd) {
                             const addQ = await addQuestion(questionToAdd.question, questionToAdd.answer, algoType);
@@ -324,7 +355,7 @@ async function handleInput(input, algoType) {
                                 answers.push('Question \"' + questionToDelete + '\" successfully deleted.');
                             }
                         } else {
-                            answers.push('Failed to parse delete question command. Please follow the format `Hapus pertanyaan \"<question>\"`.');
+                            answers.push('Failed to parse delete question command. Please follow the format [Hapus pertanyaan \"<question>\"].');
                         }
 
                         break;
@@ -334,14 +365,7 @@ async function handleInput(input, algoType) {
                         // Get the day of the week if date is valid
                         if (validateDate(dateMatch)) {
                             const dateArray = dateMatch.split('/');
-                            const reformattedDate =
-                                dateArray[2] +
-                                '-' +
-                                dateArray[1] +
-                                '-' +
-                                dateArray[0];
-                            const day = new Date(reformattedDate).getDay();
-                            answers.push("It's " + classifyDay(day) + '.');
+                            answers.push(formatDate(parseInt(dateArray[0]), parseInt(dateArray[1]), parseInt(dateArray[2])));
                         } else {
                             answers.push('Please enter the date in the format DD/MM/YYYY.');
                         }
@@ -380,17 +404,17 @@ async function handleInput(input, algoType) {
 }
 
 // Tester program
-// const readline = require('readline').createInterface({
-//     input: process.stdin,
-//     output: process.stdout,
-// });
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+});
 
-// readline.question('Enter your input: ', async (input) => {
-//     let ans = await handleInput(input.toLowerCase(), 'KMP');
-// 	for (let i = 0; i < ans.length; i++) {
-// 		console.log(ans[i]);
-// 	}
-//     readline.close();
-// });
+readline.question('Enter your input: ', async (input) => {
+    let ans = await handleInput(input.toLowerCase(), 'KMP');
+	for (let i = 0; i < ans.length; i++) {
+		console.log(ans[i]);
+	}
+    readline.close();
+});
 
 module.exports = handleInput;
