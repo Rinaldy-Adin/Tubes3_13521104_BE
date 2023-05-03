@@ -216,6 +216,18 @@ function evaluateExpression(expression) {
     return operandStack.pop();
 }
 
+// Format the answer output
+function formatAnswers(answers) {
+    if (answers.length === 0) {
+      return "";
+    } else if (answers.length === 1) {
+      return answers[0];
+    } else {
+      const formattedAnswers = answers.map((answer) => `• ${answer}`).join("\n");
+      return `The answer to your questions are:\n${formattedAnswers}`;
+    }
+}  
+
 // Classify user input into the appropriate category
 function classifyInput(input) {
     classArray = [0, 0, 0, 0];
@@ -265,13 +277,13 @@ async function handleInput(input, algoType) {
         // Return if the query resembles add question keywords but does not follow the format
         if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
             answers.push('Invalid command to add questions. Please follow the format [Tambah pertanyaan \"<question>\" \"<answer>\"].\nMake sure to exclude delimiters and double quotes on the question and answer.');
-            return answers;
+            return formatAnswers(answers);
         }
 
         // Return if the query resembles delete question keywords but does not follow the format
         if (token.match(deleteQuestionKeywordRegex) && !token.match(deleteQuestionRegex)) {
             answers.push('Invalid command to delete questions. Please follow the format [Hapus pertanyaan \"<question>\"].\nMake sure to exclude delimiters and double quotes on the question.');
-            return answers;
+            return formatAnswers(answers);
         }
 
         // Look for questions in the database if it does not resemble any special features
@@ -400,7 +412,7 @@ async function handleInput(input, algoType) {
         }
     }
 
-	return answers;
+	return formatAnswers(answers);
 }
 
 // Tester program
@@ -411,9 +423,7 @@ const readline = require('readline').createInterface({
 
 readline.question('Enter your input: ', async (input) => {
     let ans = await handleInput(input.toLowerCase(), 'KMP');
-	for (let i = 0; i < ans.length; i++) {
-		console.log(ans[i]);
-	}
+	console.log(ans);
     readline.close();
 });
 
