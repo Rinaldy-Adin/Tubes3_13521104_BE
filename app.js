@@ -18,6 +18,7 @@ const apiRouter = require('./routes/api');
 const app = express();
     app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
+    console.log('Access-Control-Allow-Origin', res.getHeader('Access-Control-Allow-Origin'));
     next();
 });
 app.use(logger('dev'));
