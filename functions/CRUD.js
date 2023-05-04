@@ -162,7 +162,7 @@ async function getAnswer(question, algoType) {
         const maxLength = Math.max(questions[minIndex].question.length, question.length);
         const similarity = ((maxLength - minDistance) / maxLength);
 
-        if (similarity >= 0.8 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
+        if (similarity >= 0.75 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
             // Get answer
             return {
                 answer: questions[minIndex].answer
