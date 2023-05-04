@@ -1,15 +1,5 @@
 // CRUD for the database
 
-// Connect to the database
-const mongoose = require('mongoose');
-require('dotenv').config();
-mongoose.connect(process.env.MONGODB_URI);
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.on('connection', (stream) => {
-    console.log('Connected!');
-  });
-
 // Import the Question model
 const Question = require('../models/Question');
 

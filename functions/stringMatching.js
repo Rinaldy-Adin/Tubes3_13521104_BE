@@ -139,9 +139,3 @@ module.exports = {
     kmp,
     boyerMoore
 };
-
-// Tester program
-// const text = "ababababca";
-// const pattern = "babc";
-// console.log(kmp(text, pattern));
-// console.log(boyerMoore(text, pattern));
