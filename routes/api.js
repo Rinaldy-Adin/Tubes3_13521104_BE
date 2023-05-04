@@ -5,7 +5,7 @@ const SessionController = require('../controller/SessionController');
 
 const router = express.Router();
 
-router.get('/all-sessions', (req, res) => {res.send("working")});
+router.get('/', (req, res) => {res.send("working")});
 
 router.get('/all-sessions', SessionController.getAllSessions);
 router.get('/session', SessionController.getSession);
