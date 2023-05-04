@@ -66,6 +66,7 @@ exports.addChat = (req, res) => {
 
 // TODO: finish
 exports.getAllSessions = (req, res) => {
+    res.set('Access-Control-Allow-Origin', 'https://crdgpt.vercel.app');
     Session.find({})
         .exec()
         .then((sessions) => {
