@@ -15,12 +15,10 @@ require('./models/Question');
 
 const apiRouter = require('./routes/api');
 
-const app = express();
-    app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    console.log('Access-Control-Allow-Origin', res.getHeader('Access-Control-Allow-Origin'));
-    next();
-});
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
 app.use(logger('dev'));
 app.use(express.json());
 
