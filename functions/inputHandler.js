@@ -276,13 +276,13 @@ async function handleInput(input, algoType) {
 
         // Return if the query resembles add question keywords but does not follow the format
         if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
-            answers.push('Invalid command to add questions. Please follow the format [Tambah pertanyaan \"<question>\" dengan jawaban \"<answer>\"].\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
+            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}`\".\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
             return formatAnswers(answers);
         }
 
         // Return if the query resembles delete question keywords but does not follow the format
         if (token.match(deleteQuestionKeywordRegex) && !token.match(deleteQuestionRegex)) {
-            answers.push('Invalid command to delete questions. Please follow the format [Hapus pertanyaan \"<question>\"].\nMake sure to exclude delimiters, double quotes, and math operators on the question.');
+            answers.push('Invalid command to delete questions. Please follow the format:\nHapus pertanyaan \"{question}\".\nMake sure to exclude delimiters, double quotes, and math operators on the question.');
             return formatAnswers(answers);
         }
 
@@ -367,7 +367,7 @@ async function handleInput(input, algoType) {
                                 answers.push('Question \"' + questionToDelete + '\" successfully deleted.');
                             }
                         } else {
-                            answers.push('Failed to parse delete question command. Please follow the format [Hapus pertanyaan \"<question>\"].');
+                            answers.push('Failed to parse delete question command. Please follow the format:\nHapus pertanyaan \"{question}\".');
                         }
 
                         break;
