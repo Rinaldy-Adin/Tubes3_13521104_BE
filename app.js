@@ -17,7 +17,10 @@ const apiRouter = require('./routes/api');
 
 const app = express();
 
-app.use(cors())
+app.use(cors({
+    origin: ['https://crdgpt.vercel.app/'],
+    credentials: true
+}));
 app.use(logger('dev'));
 app.use(express.json());
 
