@@ -276,7 +276,7 @@ async function handleInput(input, algoType) {
 
         // Return if the query resembles add question keywords but does not follow the format
         if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
-            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}`\".\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
+            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}\".\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
             return formatAnswers(answers);
         }
 
