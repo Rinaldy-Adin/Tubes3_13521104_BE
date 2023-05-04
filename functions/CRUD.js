@@ -28,7 +28,7 @@ async function addQuestion(question, answer, algoType) {
                 const updateStatus = await questions[i].save();
                 if (updateStatus) {
                     return {
-                        message: "Question \"" + question + "\" already exists. Updated answer successfully"
+                        message: "Question \"" + question + "\" already exists. Answer updated successfully"
                     };
                 } else {
                     return {
@@ -42,7 +42,7 @@ async function addQuestion(question, answer, algoType) {
                 const updateStatus = await questions[i].save();
                 if (updateStatus) {
                     return {
-                        message: "Question \"" + question + "\" already exists. Updated answer successfully"
+                        message: "Question \"" + question + "\" already exists. Answer updated successfully"
                     };
                 } else {
                     return {
