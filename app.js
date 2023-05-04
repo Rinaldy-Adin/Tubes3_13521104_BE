@@ -16,11 +16,10 @@ require('./models/Question');
 const apiRouter = require('./routes/api');
 
 const app = express();
-
-app.use(cors({
-    origin: ['https://crdgpt.vercel.app/'],
-    credentials: true
-}));
+    app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+});
 app.use(logger('dev'));
 app.use(express.json());
 
