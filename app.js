@@ -15,6 +15,7 @@ require('./models/Question');
 
 const apiRouter = require('./routes/api');
 
+const app = express();
 app.use(cors({
     origin: '*',
     credentials: true
