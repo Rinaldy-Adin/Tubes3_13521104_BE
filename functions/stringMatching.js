@@ -47,6 +47,10 @@ function kmp(text, pattern) {
         return -1;
     }
 
+    // Set to lowercase
+    text = text.toLowerCase();
+    pattern = pattern.toLowerCase();
+
     let i = 0;
     let j = 0;
     const prefix = computePrefix(pattern);
@@ -101,6 +105,10 @@ function boyerMoore(text, pattern) {
     if (text.length != pattern.length) {
         return -1;
     }
+
+    // Set to lowercase
+    text = text.toLowerCase();
+    pattern = pattern.toLowerCase();
 
     const last = buildLast(pattern);
     let i = pattern.length - 1;
