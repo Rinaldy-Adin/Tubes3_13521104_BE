@@ -4,7 +4,7 @@ const { tokenizeString, parseAddQuestionRegex, parseDeleteQuestionRegex } = requ
 
 // Regex for math expression
 const mathRegex =
-    /\(*\s*(\-?\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\-?\d+(.\d+)?)|\)+|\(+)*)+/;
+    /\-?\(*\s*(\-?\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\-?\d+(.\d+)?)|\)+|\(+)*)+/;
 
 // Regex for date
 const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
@@ -137,6 +137,49 @@ function validateMathExpression(str) {
     return true;
 }
 
+// Tokenize math expression
+function tokenizeMathExp(expression) {
+    const tokens = [];
+    let currentToken = '';
+  
+    for (let i = 0; i < expression.length; i++) {
+      const char = expression[i];
+  
+      // If the character is a digit or a decimal point, add it to the current token
+      if (/[0-9.]/.test(char)) {
+        currentToken += char;
+      }
+  
+      // If the character is a hyphen and the previous character is not a digit, treat it as a negative sign
+      else if (char === '-' && (!i || /[-+*/^()]/.test(expression[i-1]))) {
+        currentToken += char;
+      }
+  
+      // If the character is an operator or a parenthesis, push the current token to the tokens array
+      // and add the operator or parenthesis as a new token
+      else if (/[-+*/^()]/.test(char)) {
+        if (currentToken) {
+          tokens.push(currentToken);
+          currentToken = '';
+        }
+        tokens.push(char);
+      }
+  
+      // If the character is a whitespace character, skip it
+      else if (/\s/.test(char)) {
+        continue;
+      }
+    }
+  
+    // If there is a current token after the loop, push it to the tokens array
+    if (currentToken) {
+      tokens.push(currentToken);
+    }
+  
+    return tokens;
+  }
+  
+
 // Evaluate math expression
 function evaluateExpression(expression) {
     const operators = {
@@ -161,12 +204,7 @@ function evaluateExpression(expression) {
 
     expression = expression.replace(/\s+/g, '');
 
-    const tokens = expression.split(/([+\/*^()])/).map((token, i, arr) => {
-        if (token === '-' && (i === 0 || /[\+\-\*\/\^]/.test(arr[i - 1]))) {
-          return token + arr[i + 1];
-        }
-        return token;
-      }).filter(token => token.trim().length > 0);
+    const tokens = tokenizeMathExp(expression);
 
     tokens.forEach((token) => {
         if (!token) {
@@ -421,8 +459,6 @@ async function handleInput(input, algoType) {
     if (answers.length === 0) {
         answers.push('Command could not be processed.');
     }
-
-    console.log(answers);
 
 	return formatAnswers(answers);
 }
