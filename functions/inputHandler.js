@@ -262,9 +262,10 @@ async function handleInput(input, algoType) {
         let category = classifyInput(input);
         if (category.reduce((a, b) => a + b) > 1) {
             answers.push('Please include delimiters such as `;` or `?` to access multiple features.');
-            return answers;
+            return formatAnswers(answers);
         }
     }
+
 
     // Tokenize the input
     const tokens = tokenizeString(input);
@@ -296,7 +297,7 @@ async function handleInput(input, algoType) {
             // Get answer from algorithm
             const result = await getAnswer(token, algoType);
         
-            // If the database is empty, push an error message
+            // If the database is empty or there are no similar questions, push an error message
             if (result.error) {
                 answers.push(result.error);
                 continue;
@@ -399,9 +400,12 @@ async function handleInput(input, algoType) {
     
                         // Validate and calculate the result of the math expression if it is valid
                         if (validateMathExpression(mathExp)) {
-                            answers.push(
-                                'The result is ' + evaluateExpression(mathExp) + '.'
-                            );
+                            let result = evaluateExpression(mathExp);
+                            if (result == Infinity) {
+                                answers.push('The result is undefined.');
+                            } else {
+                                answers.push('The result is ' + result + '.');
+                            }
                         } else {
                             answers.push('Please enter a valid math expression.');
                         }
@@ -411,6 +415,13 @@ async function handleInput(input, algoType) {
             }
         }
     }
+
+    // Handle case if answer array is still empty
+    if (answers.length === 0) {
+        answers.push('Command could not be processed.');
+    }
+
+    console.log(answers);
 
 	return formatAnswers(answers);
 }

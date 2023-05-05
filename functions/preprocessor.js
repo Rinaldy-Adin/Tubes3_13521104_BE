@@ -9,6 +9,7 @@ const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 function tokenizeString(str) {
     const delimiterRegex = /[;?]/ig;
     const tokens = str.split(delimiterRegex).filter(token => token.trim() !== '');
+    console.log(tokens);
     
     return tokens;
 }
