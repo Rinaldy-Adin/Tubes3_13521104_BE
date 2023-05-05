@@ -449,8 +449,10 @@ async function handleInput(input, algoType) {
                                 result = evaluateExpression(mathExp);
                             }
 
-                            if (result == Infinity) {
+                            if (result == Infinity || result == -Infinity) {
                                 answers.push('The result is undefined.');
+                            } else if (result == NaN) {
+                                answers.push('Could not parse the math expression. Please try reformatting your question.');
                             } else {
                                 answers.push('The result is ' + result + '.');
                             }
