@@ -4,7 +4,7 @@ const { tokenizeString, parseAddQuestionRegex, parseDeleteQuestionRegex } = requ
 
 // Regex for math expression
 const mathRegex =
-    /\(*\s*(\-?\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\-?\d+(.\d+)?)|\)+|\(+)*)+/;
+    /\-?\(*\s*(\-?\d+(.\d+)?)\s*(\(*\s*[\+\-\*\/\^]\s*((\-?\d+(.\d+)?)|\)+|\(+)*)+/;
 
 // Regex for date
 const dateRegex = /(?<![+\-*\/\^.\d])\b\d+\/\d+\/\d+\b(?![\+\-\*\/\^\(\)])/;
@@ -18,7 +18,7 @@ const deleteQuestionKeywordRegex = /hapus\s*pertanyaan/i;
 const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 
 // Regex for delimiter
-const delimiterRegex = /([;?])/ig;
+const delimiterRegex = /\n/ig;
 
 // Validate date
 function validateDate(date) {
@@ -42,7 +42,9 @@ function validateDate(date) {
                 month === 7 ||
                 month === 8 ||
                 month === 10 ||
-                month === 12))
+                month === 12)) ||
+        (day > 28 && month === 2 && year % 4 !== 0) ||
+        (day > 29 && month === 2 && year % 4 === 0)
     ) {
         return false;
     }
@@ -137,6 +139,49 @@ function validateMathExpression(str) {
     return true;
 }
 
+// Tokenize math expression
+function tokenizeMathExp(expression) {
+    const tokens = [];
+    let currentToken = '';
+  
+    for (let i = 0; i < expression.length; i++) {
+      const char = expression[i];
+  
+      // If the character is a digit or a decimal point, add it to the current token
+      if (/[0-9.]/.test(char)) {
+        currentToken += char;
+      }
+  
+      // If the character is a hyphen and the previous character is not a digit, treat it as a negative sign
+      else if (char === '-' && (!i || /[-+*/^()]/.test(expression[i-1]))) {
+        currentToken += char;
+      }
+  
+      // If the character is an operator or a parenthesis, push the current token to the tokens array
+      // and add the operator or parenthesis as a new token
+      else if (/[-+*/^()]/.test(char)) {
+        if (currentToken) {
+          tokens.push(currentToken);
+          currentToken = '';
+        }
+        tokens.push(char);
+      }
+  
+      // If the character is a whitespace character, skip it
+      else if (/\s/.test(char)) {
+        continue;
+      }
+    }
+  
+    // If there is a current token after the loop, push it to the tokens array
+    if (currentToken) {
+      tokens.push(currentToken);
+    }
+  
+    return tokens;
+  }
+  
+
 // Evaluate math expression
 function evaluateExpression(expression) {
     const operators = {
@@ -161,12 +206,7 @@ function evaluateExpression(expression) {
 
     expression = expression.replace(/\s+/g, '');
 
-    const tokens = expression.split(/([+\/*^()])/).map((token, i, arr) => {
-        if (token === '-' && (i === 0 || /[\+\-\*\/\^]/.test(arr[i - 1]))) {
-          return token + arr[i + 1];
-        }
-        return token;
-      }).filter(token => token.trim().length > 0);
+    const tokens = tokenizeMathExp(expression);
 
     tokens.forEach((token) => {
         if (!token) {
@@ -258,13 +298,15 @@ async function handleInput(input, algoType) {
 
     // Return if the input does not contain a valid delimiter
     if (!input.match(delimiterRegex)) {
+        
         // Delimiters are necessary only if input is trying to access multiple features
         let category = classifyInput(input);
         if (category.reduce((a, b) => a + b) > 1) {
-            answers.push('Please include delimiters such as `;` or `?` to access multiple features.');
-            return answers;
+            answers.push('Please include a new line to access multiple features.\nNote: Accessing date feature requires a new line to differ from math expressions.');
+            return formatAnswers(answers);
         }
     }
+
 
     // Tokenize the input
     const tokens = tokenizeString(input);
@@ -276,13 +318,13 @@ async function handleInput(input, algoType) {
 
         // Return if the query resembles add question keywords but does not follow the format
         if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
-            answers.push('Invalid command to add questions. Please follow the format [Tambah pertanyaan \"<question>\" dengan jawaban \"<answer>\"].\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
+            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}\".\nMake sure to exclude newlines, double quotes, and math operators on the question and answer.');
             return formatAnswers(answers);
         }
 
         // Return if the query resembles delete question keywords but does not follow the format
         if (token.match(deleteQuestionKeywordRegex) && !token.match(deleteQuestionRegex)) {
-            answers.push('Invalid command to delete questions. Please follow the format [Hapus pertanyaan \"<question>\"].\nMake sure to exclude delimiters, double quotes, and math operators on the question.');
+            answers.push('Invalid command to delete questions. Please follow the format:\nHapus pertanyaan \"{question}\".\nMake sure to exclude newlines, double quotes, and math operators on the question.');
             return formatAnswers(answers);
         }
 
@@ -296,7 +338,7 @@ async function handleInput(input, algoType) {
             // Get answer from algorithm
             const result = await getAnswer(token, algoType);
         
-            // If the database is empty, push an error message
+            // If the database is empty or there are no similar questions, push an error message
             if (result.error) {
                 answers.push(result.error);
                 continue;
@@ -338,7 +380,7 @@ async function handleInput(input, algoType) {
 
                         // Check if the question to add includes delimiters
                         if (questionToAdd.question.match(delimiterRegex) || questionToAdd.answer.match(delimiterRegex)) {
-                            answers.push('Invalid question to add. Please exclude delimiters such as `;` or `?`.');
+                            answers.push('Invalid question to add. Please exclude newline character from your question.');
                             break;
                         }
 
@@ -367,7 +409,7 @@ async function handleInput(input, algoType) {
                                 answers.push('Question \"' + questionToDelete + '\" successfully deleted.');
                             }
                         } else {
-                            answers.push('Failed to parse delete question command. Please follow the format [Hapus pertanyaan \"<question>\"].');
+                            answers.push('Failed to parse delete question command. Please follow the format:\nHapus pertanyaan \"{question}\".');
                         }
 
                         break;
@@ -399,9 +441,21 @@ async function handleInput(input, algoType) {
     
                         // Validate and calculate the result of the math expression if it is valid
                         if (validateMathExpression(mathExp)) {
-                            answers.push(
-                                'The result is ' + evaluateExpression(mathExp) + '.'
-                            );
+                            let result;
+
+                            if (!mathExp.includes('^')) {
+                                result = eval(mathExp);
+                            } else {
+                                result = evaluateExpression(mathExp);
+                            }
+
+                            if (result == Infinity || result == -Infinity) {
+                                answers.push('The result is undefined.');
+                            } else if (result == NaN) {
+                                answers.push('Could not parse the math expression. Please try reformatting your question.');
+                            } else {
+                                answers.push('The result is ' + result + '.');
+                            }
                         } else {
                             answers.push('Please enter a valid math expression.');
                         }
@@ -410,6 +464,11 @@ async function handleInput(input, algoType) {
                 }
             }
         }
+    }
+
+    // Handle case if answer array is still empty
+    if (answers.length === 0) {
+        answers.push('Command could not be processed.');
     }
 
 	return formatAnswers(answers);

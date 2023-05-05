@@ -18,11 +18,11 @@ async function addQuestion(question, answer, algoType) {
                 const updateStatus = await questions[i].save();
                 if (updateStatus) {
                     return {
-                        message: "Question \"" + question + "\" already exists. Answer updated successfully"
+                        message: "Question \"" + question + "\" already exists. Answer updated successfully."
                     };
                 } else {
                     return {
-                        error: "Could not update question in database"
+                        error: "Could not update question in database."
                     };
                 }
             }
@@ -32,11 +32,11 @@ async function addQuestion(question, answer, algoType) {
                 const updateStatus = await questions[i].save();
                 if (updateStatus) {
                     return {
-                        message: "Question \"" + question + "\" already exists. Answer updated successfully"
+                        message: "Question \"" + question + "\" already exists. Answer updated successfully."
                     };
                 } else {
                     return {
-                        error: "Could not update question in database"
+                        error: "Could not update question in database."
                     };
                 }
             }
@@ -53,11 +53,11 @@ async function addQuestion(question, answer, algoType) {
         const saveStatus = await newQuestion.save();
         if (saveStatus) {
             return {
-                message: "Question \"" + question + "\" added successfully"
+                message: "Question \"" + question + "\" added successfully."
             };
         } else {
             return {
-                error: "Could not add question to database"
+                error: "Could not add question to database."
             };
         }
     } catch (err) {
@@ -76,7 +76,7 @@ async function deleteQuestion(question, algoType) {
     // Check if database is empty
     if (questions.length === 0) {
         return {
-            error: "Database is empty"
+            error: "Database is empty."
         };
     }
 
@@ -102,16 +102,16 @@ async function deleteQuestion(question, algoType) {
         try {
             await Question.findByIdAndDelete(id);
             return {
-                message: "Question deleted successfully"
+                message: "Question deleted successfully."
             };
         } catch (err) {
             return {
-                error: "Could not delete question from database"
+                error: "Could not delete question from database."
             };
         }
     } else {
         return {
-            error: "Could not find question in the database"
+            error: "Could not find question in the database."
         };
     }
 }
@@ -125,7 +125,7 @@ async function getAnswer(question, algoType) {
     // Check if database is empty
     if (questions.length === 0) {
         return {
-            error: "Database is empty"
+            error: "Database is empty."
         };
     }
 
@@ -147,7 +147,7 @@ async function getAnswer(question, algoType) {
 
     if (index === -1 || !questions[index] || !questions[index].answer) {
         // Find approximate match using Levenshtein distance
-        const questionDistances = [];
+        let questionDistances = [];
         let minDistance;
         let minIndex;
         for (let i = 0; i < questions.length; i++) {
@@ -159,16 +159,33 @@ async function getAnswer(question, algoType) {
             }
         }
         
+        // Filter out questions that are too different (similarity < 0.50)
+        questionDistances = questionDistances.filter((questionDistance) => {
+            let maxLength = Math.max(questionDistance.question.length, question.length);
+            let similarity = ((maxLength - questionDistance.distance) / maxLength);
+            return similarity >= 0.50;
+        });
+
+        // Return if no similar questions found
+        if (questionDistances.length === 0) {
+            return {
+                error: "Could not find question in the database."
+            };
+        }
+
         const maxLength = Math.max(questions[minIndex].question.length, question.length);
         const similarity = ((maxLength - minDistance) / maxLength);
 
-        if (similarity >= 0.8 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
+        console.log(questionDistances);
+
+        // Return answer if similarity >= 0.90 or minDistance <= 3 and question length > 5
+        if (similarity >= 0.90 || (minDistance <= 3 && questions[minIndex].question.length > 5)) {
             // Get answer
             return {
                 answer: questions[minIndex].answer
             };
         } else {
-            // Return a list of three most similar questions
+            // Return a list of three most similar questions, if any
             questionDistances.sort((a, b) => {
                 return a.distance - b.distance;
             });
