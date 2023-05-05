@@ -302,7 +302,7 @@ async function handleInput(input, algoType) {
         // Delimiters are necessary only if input is trying to access multiple features
         let category = classifyInput(input);
         if (category.reduce((a, b) => a + b) > 1) {
-            answers.push('Please include a new line to access multiple features.');
+            answers.push('Please include a new line to access multiple features.\nNote: Accessing dates might require a new line to differ from math expressions.');
             return formatAnswers(answers);
         }
     }
