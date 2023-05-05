@@ -18,7 +18,7 @@ const deleteQuestionKeywordRegex = /hapus\s*pertanyaan/i;
 const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 
 // Regex for delimiter
-const delimiterRegex = /([;?])/ig;
+const delimiterRegex = /\n/ig;
 
 // Validate date
 function validateDate(date) {
@@ -300,7 +300,7 @@ async function handleInput(input, algoType) {
         // Delimiters are necessary only if input is trying to access multiple features
         let category = classifyInput(input);
         if (category.reduce((a, b) => a + b) > 1) {
-            answers.push('Please include delimiters such as `;` or `?` to access multiple features.');
+            answers.push('Please include a new line to access multiple features.');
             return formatAnswers(answers);
         }
     }
@@ -316,13 +316,13 @@ async function handleInput(input, algoType) {
 
         // Return if the query resembles add question keywords but does not follow the format
         if (token.match(addQuestionKeywordRegex) && !token.match(addQuestionRegex)) {
-            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}\".\nMake sure to exclude delimiters, double quotes, and math operators on the question and answer.');
+            answers.push('Invalid command to add questions. Please follow the format:\nTambah pertanyaan \"{question}\" dengan jawaban \"{answer}\".\nMake sure to exclude newlines, double quotes, and math operators on the question and answer.');
             return formatAnswers(answers);
         }
 
         // Return if the query resembles delete question keywords but does not follow the format
         if (token.match(deleteQuestionKeywordRegex) && !token.match(deleteQuestionRegex)) {
-            answers.push('Invalid command to delete questions. Please follow the format:\nHapus pertanyaan \"{question}\".\nMake sure to exclude delimiters, double quotes, and math operators on the question.');
+            answers.push('Invalid command to delete questions. Please follow the format:\nHapus pertanyaan \"{question}\".\nMake sure to exclude newlines, double quotes, and math operators on the question.');
             return formatAnswers(answers);
         }
 
@@ -378,7 +378,7 @@ async function handleInput(input, algoType) {
 
                         // Check if the question to add includes delimiters
                         if (questionToAdd.question.match(delimiterRegex) || questionToAdd.answer.match(delimiterRegex)) {
-                            answers.push('Invalid question to add. Please exclude delimiters such as `;` or `?`.');
+                            answers.push('Invalid question to add. Please exclude newline character from your question.');
                             break;
                         }
 
@@ -439,7 +439,14 @@ async function handleInput(input, algoType) {
     
                         // Validate and calculate the result of the math expression if it is valid
                         if (validateMathExpression(mathExp)) {
-                            let result = evaluateExpression(mathExp);
+                            let result;
+
+                            if (!mathExp.includes('^')) {
+                                result = eval(mathExp);
+                            } else {
+                                result = evaluateExpression(mathExp);
+                            }
+
                             if (result == Infinity) {
                                 answers.push('The result is undefined.');
                             } else {

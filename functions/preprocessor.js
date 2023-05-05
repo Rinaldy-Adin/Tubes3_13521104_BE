@@ -7,7 +7,7 @@ const addQuestionRegex = /tambah(kan)?\s*pertanyaan\s*"([^"]+)"\s*dengan\s*jawab
 const deleteQuestionRegex = /hapus\s*pertanyaan\s*"([^"]+)"/i;
 
 function tokenizeString(str) {
-    const delimiterRegex = /[;?]/ig;
+    const delimiterRegex = /\n/ig;
     const tokens = str.split(delimiterRegex).filter(token => token.trim() !== '');
     console.log(tokens);
     
