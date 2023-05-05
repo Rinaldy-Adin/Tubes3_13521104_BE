@@ -42,7 +42,9 @@ function validateDate(date) {
                 month === 7 ||
                 month === 8 ||
                 month === 10 ||
-                month === 12))
+                month === 12)) ||
+        (day > 28 && month === 2 && year % 4 !== 0) ||
+        (day > 29 && month === 2 && year % 4 === 0)
     ) {
         return false;
     }
