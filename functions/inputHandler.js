@@ -258,6 +258,7 @@ async function handleInput(input, algoType) {
 
     // Return if the input does not contain a valid delimiter
     if (!input.match(delimiterRegex)) {
+        
         // Delimiters are necessary only if input is trying to access multiple features
         let category = classifyInput(input);
         if (category.reduce((a, b) => a + b) > 1) {
